@@ -3,18 +3,16 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ mode }) => {
-  return {
-    base: mode === 'production' ? '/space-3d/' : '/',
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
+export default defineConfig({
+  base: './', // שימוש בנתיב יחסי כדי לפתור שגיאות נתיבים ב-GitHub Pages
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
     },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-  };
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+  },
 });
