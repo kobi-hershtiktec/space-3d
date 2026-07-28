@@ -5,29 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ORION EXPLORER // The Future of Modular Space Exploration</title>
     <style>
+        /* ==========================================================================
+           RESET & CORE STYLES
+           ========================================================================== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         :root {
             --bg-void: #000000;
             --cyan-glow: #00f0ff;
+            --cyan-dim: rgba(0, 240, 255, 0.25);
+            --violet-glow: #7000ff;
             --text-primary: #ffffff;
             --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.45);
             --glass-bg: rgba(8, 12, 20, 0.35);
             --glass-border: rgba(0, 240, 255, 0.2);
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
         html, body {
             background-color: var(--bg-void);
             color: var(--text-primary);
             overflow-x: hidden;
+            /* Scroll height defines video scrub duration */
             height: 500vh;
+            scrollbar-width: thin;
+            scrollbar-color: var(--cyan-glow) var(--bg-void);
         }
 
+        /* Webkit scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020408;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--cyan-glow);
+        }
+
+        /* ==========================================================================
+           BACKGROUND VIDEO & PROCEDURAL CANVAS
+           ========================================================================== */
         #media-container {
             position: fixed;
             top: 0;
@@ -41,15 +71,47 @@
 
         #scrolly-video {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain; /* מציג את כל הסרטון במלואו ללא זום וללא חיתוך בקצוות */
+            object-fit: cover;
             pointer-events: none;
+            opacity: 0; /* Keep hidden, canvas renders the frames smoothly */
+            visibility: hidden;
         }
 
+        #procedural-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Grid lines overlay for futuristic HUD feel */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.75) 100%),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 60px 60px, 60px 60px;
+        }
+
+        /* ==========================================================================
+           HUD HEADER & CONTROLS
+           ========================================================================== */
         header.hud-header {
             position: fixed;
             top: 0;
@@ -60,6 +122,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            pointer-events: auto;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border: 1.5px solid var(--cyan-glow);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            background: rgba(0, 240, 255, 0.1);
         }
 
         .logo-text {
@@ -67,9 +150,86 @@
             font-weight: 800;
             letter-spacing: 3px;
             text-transform: uppercase;
-            color: var(--cyan-glow);
+            background: linear-gradient(135deg, #ffffff 0%, #00f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 20px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--cyan-glow);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--cyan-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--cyan-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 240, 255, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+        }
+
+        .hud-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .hud-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            cursor: pointer;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hud-btn:hover {
+            border-color: var(--cyan-glow);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Top Progress Bar */
+        .top-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyan-glow), var(--violet-glow));
+            z-index: 20;
+            box-shadow: 0 0 10px var(--cyan-glow);
+            transition: width 0.1s ease-out;
+        }
+
+        /* ==========================================================================
+           CONTENT OVERLAY & SECTIONS
+           ========================================================================== */
         .content-overlay {
             position: fixed;
             top: 0;
@@ -87,98 +247,1056 @@
             position: absolute;
             text-align: center;
             opacity: 0;
-            transition: opacity 0.5s ease;
+            transform: translateY(30px) scale(0.97);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
             background: var(--glass-bg);
             padding: 3rem 4rem;
             border-radius: 20px;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                inset 0 0 20px rgba(0, 240, 255, 0.05);
             max-width: 680px;
             width: 90%;
+            pointer-events: none;
+        }
+
+        /* Corner accents on HUD glass card */
+        .section::before, .section::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: var(--cyan-glow);
+            border-style: solid;
+            pointer-events: none;
+        }
+        .section::before {
+            top: -1px;
+            left: -1px;
+            border-width: 2px 0 0 2px;
+            border-top-left-radius: 20px;
+        }
+        .section::after {
+            bottom: -1px;
+            right: -1px;
+            border-width: 0 2px 2px 0;
+            border-bottom-right-radius: 20px;
         }
 
         .section.active {
             opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .section-tag {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--cyan-glow);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.2);
         }
 
         h1 {
-            font-size: 3rem;
+            font-size: 3.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
             margin-bottom: 1rem;
-            color: #ffffff;
+            line-height: 1.15;
+            background: linear-gradient(180deg, #FFFFFF 0%, #B0C4DE 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         p.subtitle {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             color: var(--text-secondary);
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 2rem;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e6ed 100%);
+            color: #000000;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2), 0 0 15px rgba(0, 240, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.35), 0 0 25px var(--cyan-glow);
+            background: #ffffff;
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px) scale(0.99);
+        }
+
+        /* ==========================================================================
+           RIGHT STEP DOTS NAVIGATION
+           ========================================================================== */
+        .step-nav {
+            position: fixed;
+            right: 2.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            pointer-events: auto;
+        }
+
+        .step-dot {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+        }
+
+        .dot-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .step-dot:hover .dot-indicator {
+            border-color: var(--cyan-glow);
+            transform: scale(1.2);
+        }
+
+        .step-dot.active .dot-indicator {
+            background: var(--cyan-glow);
+            border-color: var(--cyan-glow);
+            box-shadow: 0 0 12px var(--cyan-glow);
+            transform: scale(1.3);
+        }
+
+        .step-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateX(10px);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .step-dot:hover .step-label,
+        .step-dot.active .step-label {
+            opacity: 1;
+            transform: translateX(0);
+            color: var(--text-primary);
+        }
+
+        /* ==========================================================================
+           BOTTOM TELEMETRY HUD & SCROLL INDICATOR
+           ========================================================================== */
+        .bottom-hud {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 2.5rem;
+            right: 2.5rem;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+
+        .telemetry-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1.5rem;
+            pointer-events: auto;
+        }
+
+        .telemetry-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .telemetry-label {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+        }
+
+        .telemetry-val {
+            color: var(--cyan-glow);
+            font-weight: 700;
+        }
+
+        .scroll-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+
+        .scroll-indicator .arrow {
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid var(--cyan-glow);
+            border-bottom: 2px solid var(--cyan-glow);
+            transform: rotate(45deg);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) rotate(45deg); }
+            40% { transform: translateY(6px) rotate(45deg); }
+            60% { transform: translateY(3px) rotate(45deg); }
+        }
+
+        /* ==========================================================================
+           MODALS (SETTINGS & MISSION LAUNCH)
+           ========================================================================== */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #080d1a;
+            border: 1px solid var(--cyan-glow);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.25);
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-backdrop.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--cyan-glow);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .modal-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--cyan-glow);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--cyan-glow);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--cyan-glow);
+            background: rgba(0, 240, 255, 0.08);
+            color: #ffffff;
+        }
+
+        /* Countdown overlay for Launch Mission */
+        .countdown-display {
+            font-family: var(--font-mono);
+            font-size: 5rem;
+            font-weight: 800;
+            color: var(--cyan-glow);
+            text-align: center;
+            margin: 1.5rem 0;
+            text-shadow: 0 0 30px var(--cyan-glow);
+        }
+
+        /* ==========================================================================
+           RESPONSIVE STYLES
+           ========================================================================== */
+        @media (max-width: 768px) {
+            header.hud-header {
+                padding: 1rem 1.25rem;
+            }
+            .section {
+                padding: 2rem 1.5rem;
+                width: 92%;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+            p.subtitle {
+                font-size: 1rem;
+            }
+            .step-nav {
+                right: 1rem;
+            }
+            .step-label {
+                display: none;
+            }
+            .bottom-hud {
+                left: 1rem;
+                right: 1rem;
+                bottom: 1rem;
+            }
+            .telemetry-box {
+                padding: 0.5rem 0.8rem;
+                gap: 0.8rem;
+                font-size: 0.65rem;
+            }
+            .scroll-indicator {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
 
+    <!-- Top Glow Progress Bar -->
+    <div class="top-progress-bar" id="top-progress"></div>
+
+    <!-- Media Background Container -->
     <div id="media-container">
+        <!-- HTML5 Video Element for Built-In Smooth Scroll Scrubbing -->
         <video 
             id="scrolly-video" 
+            src="/video.mp4" 
             preload="auto" 
             muted 
-            playsinline 
-            webkit-playsinline>
-            <source src="./video.mp4" type="video/mp4">
+            playsinline>
+            <source src="/video.mp4" type="video/mp4">
             <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
         </video>
+
+        <!-- Procedural Canvas Fallback / Custom 3D Space Engine -->
+        <canvas id="procedural-canvas"></canvas>
+
+        <!-- Futuristic Subtle Grid Overlay -->
+        <div class="grid-overlay"></div>
     </div>
 
+    <!-- Top HUD Header -->
     <header class="hud-header">
-        <span class="logo-text">ORION // EXPLORER</span>
+        <a href="#" class="brand-logo" id="logo-link">
+            <div class="logo-icon">▲</div>
+            <span class="logo-text">ORION // EXPLORER</span>
+        </a>
+
+        <div class="status-badge">
+            <span class="pulse-dot"></span>
+            <span id="sys-status-text">SYSTEM NOMINAL // ORBIT 408</span>
+        </div>
+
+        <div class="hud-actions">
+            <button class="hud-btn" id="sound-toggle-btn" title="Toggle Sound Synth">
+                <span id="sound-icon">🔇</span>
+                <span id="sound-text">AUDIO: OFF</span>
+            </button>
+
+            <button class="hud-btn" id="lang-toggle-btn" title="Toggle Language">
+                <span>🌐</span>
+                <span id="lang-text">EN / HE</span>
+            </button>
+        </div>
     </header>
 
+    <!-- Content Section Glassy Overlays -->
     <main class="content-overlay">
+        <!-- Section 1 (0% - 20%) -->
         <div class="section active" id="sec-1">
-            <h1>ORION EXPLORER</h1>
-            <p class="subtitle">The Future of Modular Space Exploration.</p>
+            <span class="section-tag">PHASE 01 // OVERVIEW</span>
+            <h1 id="t-sec1-title">ORION EXPLORER</h1>
+            <p class="subtitle" id="t-sec1-sub">The Future of Modular Space Exploration.</p>
         </div>
+
+        <!-- Section 2 (25% - 45%) -->
         <div class="section" id="sec-2">
-            <h1>MODULAR ASSEMBLY</h1>
-            <p class="subtitle">Precision engineering assembled seamlessly in deep space.</p>
+            <span class="section-tag">PHASE 02 // ASSEMBLY</span>
+            <h1 id="t-sec2-title">MODULAR ASSEMBLY</h1>
+            <p class="subtitle" id="t-sec2-sub">Precision engineering assembled seamlessly in deep space.</p>
         </div>
+
+        <!-- Section 3 (50% - 100%) -->
         <div class="section" id="sec-3">
-            <h1>ADVANCED PROPULSION</h1>
-            <p class="subtitle">Powered by nuclear thermal and solar array technology.</p>
+            <span class="section-tag">PHASE 03 // PROPULSION</span>
+            <h1 id="t-sec3-title">ADVANCED PROPULSION</h1>
+            <p class="subtitle" id="t-sec3-sub">Powered by nuclear thermal and solar array technology.</p>
         </div>
     </main>
 
-    <div id="root"></div>
-    
-    <script type="module" src="./src/main.tsx"></script>
+    <!-- Bottom Telemetry HUD -->
+    <div class="bottom-hud">
+        <div class="telemetry-box">
+            <div class="telemetry-item">
+                <span class="telemetry-label">SCRUB POSITION</span>
+                <span class="telemetry-val" id="scrub-percent">0.0%</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">VIDEO TIMESTAMP</span>
+                <span class="telemetry-val" id="video-time">00:00.00</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">ORBITAL VELOCITY</span>
+                <span class="telemetry-val" id="tele-velocity">27,540 KM/H</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">SYSTEM STATE</span>
+                <span class="telemetry-val" style="color: #00f0ff;">READY</span>
+            </div>
+        </div>
 
+        <div class="scroll-indicator" id="scroll-hint" title="Scroll down to scrub experience">
+            <span id="t-scroll-text">SCROLL TO SCRUB</span>
+            <div class="arrow"></div>
+        </div>
+    </div>
+
+    <!-- Launch Mission Modal -->
+    <div class="modal-backdrop" id="launch-modal">
+        <div class="modal-card" style="text-align: center;">
+            <button class="modal-close" id="close-launch-modal">&times;</button>
+            <h2 class="modal-title" style="color: var(--cyan-glow);">MISSION SEQUENCE INITIATED</h2>
+            <p class="modal-subtitle">ORION-1 Modular Craft preparing for deep space transport insertion.</p>
+
+            <div class="countdown-display" id="countdown-num">3</div>
+
+            <div class="telemetry-box" style="justify-content: center; margin-bottom: 1.5rem; background: rgba(0, 240, 255, 0.05);">
+                <div class="telemetry-item">
+                    <span class="telemetry-label">ALL SYSTEMS</span>
+                    <span class="telemetry-val" style="color: #00ff88;">GO FOR LAUNCH</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">PROPULSION</span>
+                    <span class="telemetry-val">100% NOMINAL</span>
+                </div>
+            </div>
+
+            <button class="btn-primary" id="abort-launch-btn" style="background: rgba(255, 50, 50, 0.2); border: 1px solid #ff3232; color: #ffffff; width: 100%; border-radius: 12px;">
+                Abort Mission
+            </button>
+        </div>
+    </div>
+
+    <!-- React App Root Container (For Vite preview compatibility if main.tsx mounts) -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- ==========================================================================
+       JAVASCRIPT LOGIC: LERP SCRUBBING, CANVAS ENGINE, AUDIO SYNTH, HUD CONTROLS
+       ========================================================================== -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // ==================================================================
+            // 1. ELEMENT REFERENCES & STATE
+            // ==================================================================
             const video = document.getElementById('scrolly-video');
+            const canvas = document.getElementById('procedural-canvas');
+            const ctx = canvas ? canvas.getContext('2d') : null;
+            const topProgress = document.getElementById('top-progress');
             
-            window.addEventListener('scroll', () => {
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                const scrollFraction = window.scrollY / maxScroll;
+            const scrubPercentEl = document.getElementById('scrub-percent');
+            const videoTimeEl = document.getElementById('video-time');
+            const teleVelocityEl = document.getElementById('tele-velocity');
+            
+            // Text sections config with exact scroll percentage bounds
+            const sections = [
+                { el: document.getElementById('sec-1'), start: 0.00, end: 0.28 },
+                { el: document.getElementById('sec-2'), start: 0.33, end: 0.62 },
+                { el: document.getElementById('sec-3'), start: 0.67, end: 1.00 }
+            ];
+
+            const stepDots = document.querySelectorAll('.step-dot');
+            let isCanvasMode = false;
+
+            // Target and current time tracking for smooth Lerp interpolation
+            let targetTime = 0;
+            let currentTime = 0;
+            let scrollFraction = 0;
+            let smoothScrollFraction = 0;
+            let isVideoSeeking = false;
+
+            if (video) {
+                video.addEventListener('seeking', () => { isVideoSeeking = true; });
+                video.addEventListener('seeked', () => { isVideoSeeking = false; });
                 
-                if (video && video.duration) {
-                    video.currentTime = video.duration * scrollFraction;
+                // Fallback to demo video if local /video.mp4 is not present yet
+                video.addEventListener('error', () => {
+                    if (video.src.includes('/video.mp4')) {
+                        console.log('Local video.mp4 not found, falling back to built-in stream...');
+                        video.src = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+                        video.load();
+                    }
+                });
+            }
+
+            function drawVideoToCanvas() {
+                if (!ctx || !canvas || !video || !video.videoWidth || !video.videoHeight) return;
+                
+                const cw = canvas.width;
+                const ch = canvas.height;
+                const vw = video.videoWidth;
+                const vh = video.videoHeight;
+                
+                // Cover scaling logic
+                const scale = Math.max(cw / vw, ch / vh);
+                const rw = vw * scale;
+                const rh = vh * scale;
+                const rx = (cw - rw) / 2;
+                const ry = (ch - rh) / 2;
+                
+                ctx.drawImage(video, rx, ry, rw, rh);
+            }
+
+            // ==================================================================
+            // 2. CANVAS PROCEDURAL 3D SPACE ENGINE (FALLBACK / MANUAL MODE)
+            // ==================================================================
+            let stars = [];
+            function initCanvas() {
+                if (!canvas) return;
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                stars = [];
+                for (let i = 0; i < 350; i++) {
+                    stars.push({
+                        x: (Math.random() - 0.5) * canvas.width * 2,
+                        y: (Math.random() - 0.5) * canvas.height * 2,
+                        z: Math.random() * canvas.width,
+                        size: Math.random() * 1.5 + 0.5,
+                        color: Math.random() > 0.3 ? '#00f0ff' : '#ffffff'
+                    });
+                }
+            }
+
+            window.addEventListener('resize', initCanvas);
+            initCanvas();
+
+            function renderProceduralCanvas(progress) {
+                if (!ctx || !canvas) return;
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                // Render starfield with speed perspective warp
+                stars.forEach(star => {
+                    let depth = (star.z - progress * 1200) % canvas.width;
+                    if (depth <= 0) depth += canvas.width;
+
+                    const k = 400 / depth;
+                    const px = star.x * k + cx;
+                    const py = star.y * k + cy;
+
+                    if (px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
+                        const alpha = Math.min(1, 1 - depth / canvas.width);
+                        ctx.fillStyle = star.color;
+                        ctx.globalAlpha = alpha;
+                        ctx.beginPath();
+                        ctx.arc(px, py, star.size * k * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                ctx.globalAlpha = 1;
+
+                // Render 3D Wireframe Spaceship with solar wing expansion
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(progress * Math.PI * 2);
+
+                // Ship Core Module
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = '#00f0ff';
+                ctx.shadowBlur = 15;
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 45, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Solar Wings unfolding based on scroll progress
+                const wingSpan = 60 + progress * 180;
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.15)';
+                ctx.fillRect(-wingSpan, -12, wingSpan * 2, 24);
+                ctx.strokeRect(-wingSpan, -12, wingSpan * 2, 24);
+
+                // Thruster Flame effect
+                const thrusterPulse = Math.sin(Date.now() * 0.02) * 10 + 30;
+                const gradient = ctx.createRadialGradient(0, wingSpan / 3, 5, 0, wingSpan / 3 + thrusterPulse, 40);
+                gradient.addColorStop(0, 'rgba(0, 240, 255, 0.9)');
+                gradient.addColorStop(1, 'rgba(112, 0, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 40, thrusterPulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // ==================================================================
+            // 3. SMOOTH LERP SCROLL-SCRUBBING ENGINE
+            // ==================================================================
+            function updateScroll() {
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                scrollFraction = Math.max(0, Math.min(1, window.scrollY / (maxScroll || 1)));
+
+                // Top Progress Bar width
+                if (topProgress) topProgress.style.width = (scrollFraction * 100) + '%';
+
+                // Calculate target video time across full video duration
+                if (video && video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+                    const safeDuration = Math.max(0, video.duration - 0.05);
+                    targetTime = scrollFraction * safeDuration;
                 }
 
-                const sec1 = document.getElementById('sec-1');
-                const sec2 = document.getElementById('sec-2');
-                const sec3 = document.getElementById('sec-3');
+                // Update active section visibility
+                sections.forEach((sec, idx) => {
+                    if (!sec.el) return;
+                    if (scrollFraction >= sec.start && scrollFraction <= sec.end) {
+                        sec.el.classList.add('active');
+                        if (stepDots[idx]) stepDots[idx].classList.add('active');
+                    } else {
+                        sec.el.classList.remove('active');
+                        if (stepDots[idx]) stepDots[idx].classList.remove('active');
+                    }
+                });
 
-                if (scrollFraction < 0.33) {
-                    sec1.classList.add('active');
-                    sec2.classList.remove('active');
-                    sec3.classList.remove('active');
-                } else if (scrollFraction < 0.66) {
-                    sec1.classList.remove('active');
-                    sec2.classList.add('active');
-                    sec3.classList.remove('active');
-                } else {
-                    sec1.classList.remove('active');
-                    sec2.classList.remove('active');
-                    sec3.classList.add('active');
+                // Update Telemetry HUD numbers
+                if (scrubPercentEl) scrubPercentEl.textContent = (scrollFraction * 100).toFixed(1) + '%';
+                const calcSpeed = Math.round(27000 + scrollFraction * 3500);
+                if (teleVelocityEl) teleVelocityEl.textContent = calcSpeed.toLocaleString() + ' KM/H';
+            }
+
+            // Render loop running via requestAnimationFrame with smooth Lerp interpolation
+            function render() {
+                // Lerp smooth scroll fraction for 60fps buttery smooth scroll experience
+                smoothScrollFraction += (scrollFraction - smoothScrollFraction) * 0.12;
+
+                if (isCanvasMode) {
+                    renderProceduralCanvas(smoothScrollFraction);
+                } else if (video && video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+                    const safeDuration = Math.max(0, video.duration - 0.05);
+                    targetTime = smoothScrollFraction * safeDuration;
+
+                    // Non-blocking seek controller to avoid decoder lock
+                    if (!isVideoSeeking && Math.abs(targetTime - video.currentTime) > 0.03) {
+                        try {
+                            if ('fastSeek' in video) {
+                                video.fastSeek(targetTime);
+                            } else {
+                                video.currentTime = targetTime;
+                            }
+                        } catch (e) { }
+                    }
+
+                    // Render video frame onto hardware accelerated GPU canvas
+                    drawVideoToCanvas();
+
+                    // Format timestamp display (e.g. 00:04.2 / 00:15)
+                    if (videoTimeEl) {
+                        const curSecs = video.currentTime || 0;
+                        const totalSecs = video.duration || 0;
+                        const m = Math.floor(curSecs / 60);
+                        const s = (curSecs % 60).toFixed(1);
+                        const tm = Math.floor(totalSecs / 60);
+                        const ts = (totalSecs % 60).toFixed(0);
+                        videoTimeEl.textContent = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s} / ${tm < 10 ? '0' : ''}${tm}:${ts < 10 ? '0' : ''}${ts}`;
+                    }
                 }
+
+                requestAnimationFrame(render);
+            }
+
+            // Event Listeners for Scroll & Video Metadata
+            window.addEventListener('scroll', updateScroll, { passive: true });
+            if (video) {
+                const onVideoReady = () => {
+                    enableVideoMode();
+                    updateScroll();
+                };
+
+                video.addEventListener('loadedmetadata', onVideoReady);
+                video.addEventListener('durationchange', updateScroll);
+                video.addEventListener('loadeddata', onVideoReady);
+                video.addEventListener('canplay', onVideoReady);
+
+                // Handle video error gracefully by trying fallback sample before canvas
+                let retryCount = 0;
+                video.addEventListener('error', () => {
+                    if (retryCount === 0) {
+                        retryCount++;
+                        console.warn("Video primary source failed. Retrying with reliable space stream...");
+                        video.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+                        video.load();
+                    } else {
+                        console.warn("Video failed to load. Switching to Procedural 3D Space Canvas Mode.");
+                        enableCanvasMode();
+                    }
+                });
+            }
+
+            // Start smooth rendering loop
+            updateScroll();
+            requestAnimationFrame(render);
+
+            function enableCanvasMode() {
+                isCanvasMode = true;
+                if (video) video.style.opacity = '0';
+                if (canvas) canvas.style.opacity = '1';
+                const statusText = document.getElementById('sys-status-text');
+                if (statusText) statusText.textContent = "SYSTEM NOMINAL // PROCEDURAL ENGINE ACTIVE";
+            }
+
+            function enableVideoMode() {
+                isCanvasMode = false;
+                if (video) video.style.opacity = '0';
+                if (canvas) canvas.style.opacity = '1';
+                const statusText = document.getElementById('sys-status-text');
+                if (statusText) statusText.textContent = "SYSTEM NOMINAL // ORBIT 408";
+            }
+
+            // ==================================================================
+            // 4. STEP DOTS CLICK TO SCROLL
+            // ==================================================================
+            stepDots.forEach((dot, index) => {
+                dot.addEventListener('click', () => {
+                    const targetPercent = sections[index].start + 0.05;
+                    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                    window.scrollTo({
+                        top: targetPercent * maxScroll,
+                        behavior: 'smooth'
+                    });
+                    playSynthSound(440 + index * 110, 0.1);
+                });
             });
+
+            // Scroll hint click
+            const scrollHint = document.getElementById('scroll-hint');
+            if (scrollHint) {
+                scrollHint.addEventListener('click', () => {
+                    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                    window.scrollTo({ top: maxScroll * 0.3, behavior: 'smooth' });
+                });
+            }
+
+            // ==================================================================
+            // 5. WEB AUDIO AMBIENT & UI SYNTHESIZER
+            // ==================================================================
+            let audioCtx = null;
+            let isMuted = true;
+            let droneOsc = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+
+            function toggleAudio() {
+                initAudio();
+                isMuted = !isMuted;
+                const soundIcon = document.getElementById('sound-icon');
+                const soundText = document.getElementById('sound-text');
+
+                if (!isMuted) {
+                    if (soundIcon) soundIcon.textContent = "🔊";
+                    if (soundText) soundText.textContent = "AUDIO: ON";
+                    startSpaceDrone();
+                } else {
+                    if (soundIcon) soundIcon.textContent = "🔇";
+                    if (soundText) soundText.textContent = "AUDIO: OFF";
+                    if (droneOsc) {
+                        droneOsc.stop();
+                        droneOsc = null;
+                    }
+                }
+            }
+
+            function startSpaceDrone() {
+                if (!audioCtx || isMuted) return;
+                try {
+                    droneOsc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    droneOsc.type = 'sine';
+                    droneOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // Deep A1 drone
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+                    droneOsc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    droneOsc.start();
+                } catch (e) { console.error(e); }
+            }
+
+            function playSynthSound(freq, duration) {
+                if (isMuted || !audioCtx) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + duration);
+                } catch (e) { }
+            }
+
+            const soundToggleBtn = document.getElementById('sound-toggle-btn');
+            if (soundToggleBtn) soundToggleBtn.addEventListener('click', toggleAudio);
+
+            // ==================================================================
+            // 7. MISSION LAUNCH MODAL & COUNTDOWN SEQUENCE
+            // ==================================================================
+            const launchModal = document.getElementById('launch-modal');
+            const launchBtn = document.getElementById('launch-mission-btn');
+            const closeLaunchModal = document.getElementById('close-launch-modal');
+            const abortLaunchBtn = document.getElementById('abort-launch-btn');
+            const countdownEl = document.getElementById('countdown-num');
+            let launchTimer = null;
+
+            if (launchBtn && launchModal) {
+                launchBtn.addEventListener('click', () => {
+                    launchModal.classList.add('active');
+                    playSynthSound(500, 0.2);
+                    startCountdown();
+                });
+            }
+
+            if (closeLaunchModal) closeLaunchModal.addEventListener('click', abortMission);
+            if (abortLaunchBtn) abortLaunchBtn.addEventListener('click', abortMission);
+
+            function startCountdown() {
+                let count = 3;
+                if (countdownEl) {
+                    countdownEl.textContent = count;
+                    countdownEl.style.color = '#00f0ff';
+                }
+
+                if (launchTimer) clearInterval(launchTimer);
+
+                launchTimer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        if (countdownEl) countdownEl.textContent = count;
+                        playSynthSound(600 + (3 - count) * 200, 0.2);
+                    } else if (count === 0) {
+                        if (countdownEl) {
+                            countdownEl.textContent = "IGNITION";
+                            countdownEl.style.color = "#00ff88";
+                        }
+                        playSynthSound(1200, 0.6);
+                    } else {
+                        clearInterval(launchTimer);
+                        if (countdownEl) countdownEl.textContent = "LIFTOFF!";
+                        setTimeout(() => {
+                            if (launchModal) launchModal.classList.remove('active');
+                        }, 1500);
+                    }
+                }, 1000);
+            }
+
+            function abortMission() {
+                if (launchTimer) clearInterval(launchTimer);
+                if (launchModal) launchModal.classList.remove('active');
+                playSynthSound(300, 0.3);
+            }
+
+            // ==================================================================
+            // 8. MULTILINGUAL (ENGLISH / HEBREW) TRANSLATION TOGGLE
+            // ==================================================================
+            let currentLang = 'EN';
+            const langBtn = document.getElementById('lang-toggle-btn');
+            const langText = document.getElementById('lang-text');
+
+            const translations = {
+                EN: {
+                    dir: 'ltr',
+                    sec1Title: 'ORION EXPLORER',
+                    sec1Sub: 'The Future of Modular Space Exploration.',
+                    sec2Title: 'MODULAR ASSEMBLY',
+                    sec2Sub: 'Precision engineering assembled seamlessly in deep space.',
+                    sec3Title: 'ADVANCED PROPULSION',
+                    sec3Sub: 'Powered by nuclear thermal and solar array technology.',
+                    sec4Title: 'MISSION READY',
+                    sec4Sub: 'Prepared for deep space transport.',
+                    launchBtn: 'Launch Mission',
+                    scrollText: 'SCROLL TO SCRUB'
+                },
+                HE: {
+                    dir: 'rtl',
+                    sec1Title: 'אוריון אקספלורר',
+                    sec1Sub: 'העתיד של חקר החלל המודולרי.',
+                    sec2Title: 'הרכבה מודולרית',
+                    sec2Sub: 'הנדסת דיוק מורכבת בצורה חלקית בחלל העמוק.',
+                    sec3Title: 'מערכות הנעה מתקדמות',
+                    sec3Sub: 'מונע באמצעות אנרגיה גרעינית תרמית ולוחות סולאריים.',
+                    sec4Title: 'מוכנים למשימה',
+                    sec4Sub: 'מוכן לשיגור ולמסע בחלל העמוק.',
+                    launchBtn: 'התחל משימה',
+                    scrollText: 'גולל למטה'
+                }
+            };
+
+            if (langBtn) {
+                langBtn.addEventListener('click', () => {
+                    currentLang = currentLang === 'EN' ? 'HE' : 'EN';
+                    if (langText) langText.textContent = currentLang === 'EN' ? 'EN / HE' : 'HE / EN';
+                    document.documentElement.setAttribute('dir', translations[currentLang].dir);
+
+                    const s1t = document.getElementById('t-sec1-title');
+                    const s1s = document.getElementById('t-sec1-sub');
+                    const s2t = document.getElementById('t-sec2-title');
+                    const s2s = document.getElementById('t-sec2-sub');
+                    const s3t = document.getElementById('t-sec3-title');
+                    const s3s = document.getElementById('t-sec3-sub');
+                    const s4t = document.getElementById('t-sec4-title');
+                    const s4s = document.getElementById('t-sec4-sub');
+                    const lBtn = document.getElementById('t-launch-btn');
+                    const scTxt = document.getElementById('t-scroll-text');
+
+                    if (s1t) s1t.textContent = translations[currentLang].sec1Title;
+                    if (s1s) s1s.textContent = translations[currentLang].sec1Sub;
+                    if (s2t) s2t.textContent = translations[currentLang].sec2Title;
+                    if (s2s) s2s.textContent = translations[currentLang].sec2Sub;
+                    if (s3t) s3t.textContent = translations[currentLang].sec3Title;
+                    if (s3s) s3s.textContent = translations[currentLang].sec3Sub;
+                    if (s4t) s4t.textContent = translations[currentLang].sec4Title;
+                    if (s4s) s4s.textContent = translations[currentLang].sec4Sub;
+                    if (lBtn) lBtn.textContent = translations[currentLang].launchBtn;
+                    if (scTxt) scTxt.textContent = translations[currentLang].scrollText;
+
+                    playSynthSound(650, 0.15);
+                });
+            }
         });
     </script>
 </body>
