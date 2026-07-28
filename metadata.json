@@ -1,0 +1,6 @@
+{
+  "name": "Orion Explorer",
+  "description": "High-end dark-themed space landing page featuring smooth scroll-scrubbed video experience and glassmorphic HUD overlays.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
