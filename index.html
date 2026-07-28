@@ -34,13 +34,11 @@
             background-color: var(--bg-void);
             color: var(--text-primary);
             overflow-x: hidden;
-            /* Scroll height defines video scrub duration */
             height: 500vh;
             scrollbar-width: thin;
             scrollbar-color: var(--cyan-glow) var(--bg-void);
         }
 
-        /* Webkit scrollbar styling */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -77,7 +75,7 @@
             height: 100%;
             object-fit: cover;
             pointer-events: none;
-            opacity: 0; /* Keep hidden, canvas renders the frames smoothly */
+            opacity: 0;
             visibility: hidden;
         }
 
@@ -93,7 +91,6 @@
             transition: opacity 0.5s ease;
         }
 
-        /* Grid lines overlay for futuristic HUD feel */
         .grid-overlay {
             position: fixed;
             top: 0;
@@ -214,7 +211,6 @@
             transform: translateY(-1px);
         }
 
-        /* Top Progress Bar */
         .top-progress-bar {
             position: fixed;
             top: 0;
@@ -264,7 +260,6 @@
             pointer-events: none;
         }
 
-        /* Corner accents on HUD glass card */
         .section::before, .section::after {
             content: '';
             position: absolute;
@@ -623,7 +618,6 @@
             color: #ffffff;
         }
 
-        /* Countdown overlay for Launch Mission */
         .countdown-display {
             font-family: var(--font-mono);
             font-size: 5rem;
@@ -675,30 +669,23 @@
 </head>
 <body>
 
-    <!-- Top Glow Progress Bar -->
     <div class="top-progress-bar" id="top-progress"></div>
 
-    <!-- Media Background Container -->
     <div id="media-container">
-        <!-- HTML5 Video Element for Built-In Smooth Scroll Scrubbing -->
         <video 
             id="scrolly-video" 
-            src="/video.mp4" 
+            src="./video.mp4" 
             preload="auto" 
             muted 
             playsinline>
-            <source src="/video.mp4" type="video/mp4">
+            <source src="./video.mp4" type="video/mp4">
             <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
         </video>
 
-        <!-- Procedural Canvas Fallback / Custom 3D Space Engine -->
         <canvas id="procedural-canvas"></canvas>
-
-        <!-- Futuristic Subtle Grid Overlay -->
         <div class="grid-overlay"></div>
     </div>
 
-    <!-- Top HUD Header -->
     <header class="hud-header">
         <a href="#" class="brand-logo" id="logo-link">
             <div class="logo-icon">▲</div>
@@ -723,23 +710,19 @@
         </div>
     </header>
 
-    <!-- Content Section Glassy Overlays -->
     <main class="content-overlay">
-        <!-- Section 1 (0% - 20%) -->
         <div class="section active" id="sec-1">
             <span class="section-tag">PHASE 01 // OVERVIEW</span>
             <h1 id="t-sec1-title">ORION EXPLORER</h1>
             <p class="subtitle" id="t-sec1-sub">The Future of Modular Space Exploration.</p>
         </div>
 
-        <!-- Section 2 (25% - 45%) -->
         <div class="section" id="sec-2">
             <span class="section-tag">PHASE 02 // ASSEMBLY</span>
             <h1 id="t-sec2-title">MODULAR ASSEMBLY</h1>
             <p class="subtitle" id="t-sec2-sub">Precision engineering assembled seamlessly in deep space.</p>
         </div>
 
-        <!-- Section 3 (50% - 100%) -->
         <div class="section" id="sec-3">
             <span class="section-tag">PHASE 03 // PROPULSION</span>
             <h1 id="t-sec3-title">ADVANCED PROPULSION</h1>
@@ -747,7 +730,6 @@
         </div>
     </main>
 
-    <!-- Bottom Telemetry HUD -->
     <div class="bottom-hud">
         <div class="telemetry-box">
             <div class="telemetry-item">
@@ -774,7 +756,6 @@
         </div>
     </div>
 
-    <!-- Launch Mission Modal -->
     <div class="modal-backdrop" id="launch-modal">
         <div class="modal-card" style="text-align: center;">
             <button class="modal-close" id="close-launch-modal">&times;</button>
@@ -800,18 +781,11 @@
         </div>
     </div>
 
-    <!-- React App Root Container (For Vite preview compatibility if main.tsx mounts) -->
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
 
-    <!-- ==========================================================================
-       JAVASCRIPT LOGIC: LERP SCRUBBING, CANVAS ENGINE, AUDIO SYNTH, HUD CONTROLS
-       ========================================================================== -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ==================================================================
-            // 1. ELEMENT REFERENCES & STATE
-            // ==================================================================
             const video = document.getElementById('scrolly-video');
             const canvas = document.getElementById('procedural-canvas');
             const ctx = canvas ? canvas.getContext('2d') : null;
@@ -821,7 +795,6 @@
             const videoTimeEl = document.getElementById('video-time');
             const teleVelocityEl = document.getElementById('tele-velocity');
             
-            // Text sections config with exact scroll percentage bounds
             const sections = [
                 { el: document.getElementById('sec-1'), start: 0.00, end: 0.28 },
                 { el: document.getElementById('sec-2'), start: 0.33, end: 0.62 },
@@ -831,7 +804,6 @@
             const stepDots = document.querySelectorAll('.step-dot');
             let isCanvasMode = false;
 
-            // Target and current time tracking for smooth Lerp interpolation
             let targetTime = 0;
             let currentTime = 0;
             let scrollFraction = 0;
@@ -842,9 +814,8 @@
                 video.addEventListener('seeking', () => { isVideoSeeking = true; });
                 video.addEventListener('seeked', () => { isVideoSeeking = false; });
                 
-                // Fallback to demo video if local /video.mp4 is not present yet
                 video.addEventListener('error', () => {
-                    if (video.src.includes('/video.mp4')) {
+                    if (video.src.includes('video.mp4')) {
                         console.log('Local video.mp4 not found, falling back to built-in stream...');
                         video.src = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
                         video.load();
@@ -860,7 +831,6 @@
                 const vw = video.videoWidth;
                 const vh = video.videoHeight;
                 
-                // Cover scaling logic
                 const scale = Math.max(cw / vw, ch / vh);
                 const rw = vw * scale;
                 const rh = vh * scale;
@@ -870,9 +840,6 @@
                 ctx.drawImage(video, rx, ry, rw, rh);
             }
 
-            // ==================================================================
-            // 2. CANVAS PROCEDURAL 3D SPACE ENGINE (FALLBACK / MANUAL MODE)
-            // ==================================================================
             let stars = [];
             function initCanvas() {
                 if (!canvas) return;
@@ -889,414 +856,8 @@
                     });
                 }
             }
-
-            window.addEventListener('resize', initCanvas);
             initCanvas();
-
-            function renderProceduralCanvas(progress) {
-                if (!ctx || !canvas) return;
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                const cx = canvas.width / 2;
-                const cy = canvas.height / 2;
-
-                // Render starfield with speed perspective warp
-                stars.forEach(star => {
-                    let depth = (star.z - progress * 1200) % canvas.width;
-                    if (depth <= 0) depth += canvas.width;
-
-                    const k = 400 / depth;
-                    const px = star.x * k + cx;
-                    const py = star.y * k + cy;
-
-                    if (px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
-                        const alpha = Math.min(1, 1 - depth / canvas.width);
-                        ctx.fillStyle = star.color;
-                        ctx.globalAlpha = alpha;
-                        ctx.beginPath();
-                        ctx.arc(px, py, star.size * k * 0.5, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                });
-
-                ctx.globalAlpha = 1;
-
-                // Render 3D Wireframe Spaceship with solar wing expansion
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(progress * Math.PI * 2);
-
-                // Ship Core Module
-                ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 2;
-                ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 15;
-
-                ctx.beginPath();
-                ctx.arc(0, 0, 45, 0, Math.PI * 2);
-                ctx.stroke();
-
-                // Solar Wings unfolding based on scroll progress
-                const wingSpan = 60 + progress * 180;
-                ctx.fillStyle = 'rgba(0, 240, 255, 0.15)';
-                ctx.fillRect(-wingSpan, -12, wingSpan * 2, 24);
-                ctx.strokeRect(-wingSpan, -12, wingSpan * 2, 24);
-
-                // Thruster Flame effect
-                const thrusterPulse = Math.sin(Date.now() * 0.02) * 10 + 30;
-                const gradient = ctx.createRadialGradient(0, wingSpan / 3, 5, 0, wingSpan / 3 + thrusterPulse, 40);
-                gradient.addColorStop(0, 'rgba(0, 240, 255, 0.9)');
-                gradient.addColorStop(1, 'rgba(112, 0, 255, 0)');
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(0, 40, thrusterPulse, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
-            }
-
-            // ==================================================================
-            // 3. SMOOTH LERP SCROLL-SCRUBBING ENGINE
-            // ==================================================================
-            function updateScroll() {
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                scrollFraction = Math.max(0, Math.min(1, window.scrollY / (maxScroll || 1)));
-
-                // Top Progress Bar width
-                if (topProgress) topProgress.style.width = (scrollFraction * 100) + '%';
-
-                // Calculate target video time across full video duration
-                if (video && video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-                    const safeDuration = Math.max(0, video.duration - 0.05);
-                    targetTime = scrollFraction * safeDuration;
-                }
-
-                // Update active section visibility
-                sections.forEach((sec, idx) => {
-                    if (!sec.el) return;
-                    if (scrollFraction >= sec.start && scrollFraction <= sec.end) {
-                        sec.el.classList.add('active');
-                        if (stepDots[idx]) stepDots[idx].classList.add('active');
-                    } else {
-                        sec.el.classList.remove('active');
-                        if (stepDots[idx]) stepDots[idx].classList.remove('active');
-                    }
-                });
-
-                // Update Telemetry HUD numbers
-                if (scrubPercentEl) scrubPercentEl.textContent = (scrollFraction * 100).toFixed(1) + '%';
-                const calcSpeed = Math.round(27000 + scrollFraction * 3500);
-                if (teleVelocityEl) teleVelocityEl.textContent = calcSpeed.toLocaleString() + ' KM/H';
-            }
-
-            // Render loop running via requestAnimationFrame with smooth Lerp interpolation
-            function render() {
-                // Lerp smooth scroll fraction for 60fps buttery smooth scroll experience
-                smoothScrollFraction += (scrollFraction - smoothScrollFraction) * 0.12;
-
-                if (isCanvasMode) {
-                    renderProceduralCanvas(smoothScrollFraction);
-                } else if (video && video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-                    const safeDuration = Math.max(0, video.duration - 0.05);
-                    targetTime = smoothScrollFraction * safeDuration;
-
-                    // Non-blocking seek controller to avoid decoder lock
-                    if (!isVideoSeeking && Math.abs(targetTime - video.currentTime) > 0.03) {
-                        try {
-                            if ('fastSeek' in video) {
-                                video.fastSeek(targetTime);
-                            } else {
-                                video.currentTime = targetTime;
-                            }
-                        } catch (e) { }
-                    }
-
-                    // Render video frame onto hardware accelerated GPU canvas
-                    drawVideoToCanvas();
-
-                    // Format timestamp display (e.g. 00:04.2 / 00:15)
-                    if (videoTimeEl) {
-                        const curSecs = video.currentTime || 0;
-                        const totalSecs = video.duration || 0;
-                        const m = Math.floor(curSecs / 60);
-                        const s = (curSecs % 60).toFixed(1);
-                        const tm = Math.floor(totalSecs / 60);
-                        const ts = (totalSecs % 60).toFixed(0);
-                        videoTimeEl.textContent = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s} / ${tm < 10 ? '0' : ''}${tm}:${ts < 10 ? '0' : ''}${ts}`;
-                    }
-                }
-
-                requestAnimationFrame(render);
-            }
-
-            // Event Listeners for Scroll & Video Metadata
-            window.addEventListener('scroll', updateScroll, { passive: true });
-            if (video) {
-                const onVideoReady = () => {
-                    enableVideoMode();
-                    updateScroll();
-                };
-
-                video.addEventListener('loadedmetadata', onVideoReady);
-                video.addEventListener('durationchange', updateScroll);
-                video.addEventListener('loadeddata', onVideoReady);
-                video.addEventListener('canplay', onVideoReady);
-
-                // Handle video error gracefully by trying fallback sample before canvas
-                let retryCount = 0;
-                video.addEventListener('error', () => {
-                    if (retryCount === 0) {
-                        retryCount++;
-                        console.warn("Video primary source failed. Retrying with reliable space stream...");
-                        video.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-                        video.load();
-                    } else {
-                        console.warn("Video failed to load. Switching to Procedural 3D Space Canvas Mode.");
-                        enableCanvasMode();
-                    }
-                });
-            }
-
-            // Start smooth rendering loop
-            updateScroll();
-            requestAnimationFrame(render);
-
-            function enableCanvasMode() {
-                isCanvasMode = true;
-                if (video) video.style.opacity = '0';
-                if (canvas) canvas.style.opacity = '1';
-                const statusText = document.getElementById('sys-status-text');
-                if (statusText) statusText.textContent = "SYSTEM NOMINAL // PROCEDURAL ENGINE ACTIVE";
-            }
-
-            function enableVideoMode() {
-                isCanvasMode = false;
-                if (video) video.style.opacity = '0';
-                if (canvas) canvas.style.opacity = '1';
-                const statusText = document.getElementById('sys-status-text');
-                if (statusText) statusText.textContent = "SYSTEM NOMINAL // ORBIT 408";
-            }
-
-            // ==================================================================
-            // 4. STEP DOTS CLICK TO SCROLL
-            // ==================================================================
-            stepDots.forEach((dot, index) => {
-                dot.addEventListener('click', () => {
-                    const targetPercent = sections[index].start + 0.05;
-                    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                    window.scrollTo({
-                        top: targetPercent * maxScroll,
-                        behavior: 'smooth'
-                    });
-                    playSynthSound(440 + index * 110, 0.1);
-                });
-            });
-
-            // Scroll hint click
-            const scrollHint = document.getElementById('scroll-hint');
-            if (scrollHint) {
-                scrollHint.addEventListener('click', () => {
-                    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                    window.scrollTo({ top: maxScroll * 0.3, behavior: 'smooth' });
-                });
-            }
-
-            // ==================================================================
-            // 5. WEB AUDIO AMBIENT & UI SYNTHESIZER
-            // ==================================================================
-            let audioCtx = null;
-            let isMuted = true;
-            let droneOsc = null;
-
-            function initAudio() {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-            }
-
-            function toggleAudio() {
-                initAudio();
-                isMuted = !isMuted;
-                const soundIcon = document.getElementById('sound-icon');
-                const soundText = document.getElementById('sound-text');
-
-                if (!isMuted) {
-                    if (soundIcon) soundIcon.textContent = "🔊";
-                    if (soundText) soundText.textContent = "AUDIO: ON";
-                    startSpaceDrone();
-                } else {
-                    if (soundIcon) soundIcon.textContent = "🔇";
-                    if (soundText) soundText.textContent = "AUDIO: OFF";
-                    if (droneOsc) {
-                        droneOsc.stop();
-                        droneOsc = null;
-                    }
-                }
-            }
-
-            function startSpaceDrone() {
-                if (!audioCtx || isMuted) return;
-                try {
-                    droneOsc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    droneOsc.type = 'sine';
-                    droneOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // Deep A1 drone
-                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-
-                    droneOsc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    droneOsc.start();
-                } catch (e) { console.error(e); }
-            }
-
-            function playSynthSound(freq, duration) {
-                if (isMuted || !audioCtx) return;
-                try {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + duration);
-                } catch (e) { }
-            }
-
-            const soundToggleBtn = document.getElementById('sound-toggle-btn');
-            if (soundToggleBtn) soundToggleBtn.addEventListener('click', toggleAudio);
-
-            // ==================================================================
-            // 7. MISSION LAUNCH MODAL & COUNTDOWN SEQUENCE
-            // ==================================================================
-            const launchModal = document.getElementById('launch-modal');
-            const launchBtn = document.getElementById('launch-mission-btn');
-            const closeLaunchModal = document.getElementById('close-launch-modal');
-            const abortLaunchBtn = document.getElementById('abort-launch-btn');
-            const countdownEl = document.getElementById('countdown-num');
-            let launchTimer = null;
-
-            if (launchBtn && launchModal) {
-                launchBtn.addEventListener('click', () => {
-                    launchModal.classList.add('active');
-                    playSynthSound(500, 0.2);
-                    startCountdown();
-                });
-            }
-
-            if (closeLaunchModal) closeLaunchModal.addEventListener('click', abortMission);
-            if (abortLaunchBtn) abortLaunchBtn.addEventListener('click', abortMission);
-
-            function startCountdown() {
-                let count = 3;
-                if (countdownEl) {
-                    countdownEl.textContent = count;
-                    countdownEl.style.color = '#00f0ff';
-                }
-
-                if (launchTimer) clearInterval(launchTimer);
-
-                launchTimer = setInterval(() => {
-                    count--;
-                    if (count > 0) {
-                        if (countdownEl) countdownEl.textContent = count;
-                        playSynthSound(600 + (3 - count) * 200, 0.2);
-                    } else if (count === 0) {
-                        if (countdownEl) {
-                            countdownEl.textContent = "IGNITION";
-                            countdownEl.style.color = "#00ff88";
-                        }
-                        playSynthSound(1200, 0.6);
-                    } else {
-                        clearInterval(launchTimer);
-                        if (countdownEl) countdownEl.textContent = "LIFTOFF!";
-                        setTimeout(() => {
-                            if (launchModal) launchModal.classList.remove('active');
-                        }, 1500);
-                    }
-                }, 1000);
-            }
-
-            function abortMission() {
-                if (launchTimer) clearInterval(launchTimer);
-                if (launchModal) launchModal.classList.remove('active');
-                playSynthSound(300, 0.3);
-            }
-
-            // ==================================================================
-            // 8. MULTILINGUAL (ENGLISH / HEBREW) TRANSLATION TOGGLE
-            // ==================================================================
-            let currentLang = 'EN';
-            const langBtn = document.getElementById('lang-toggle-btn');
-            const langText = document.getElementById('lang-text');
-
-            const translations = {
-                EN: {
-                    dir: 'ltr',
-                    sec1Title: 'ORION EXPLORER',
-                    sec1Sub: 'The Future of Modular Space Exploration.',
-                    sec2Title: 'MODULAR ASSEMBLY',
-                    sec2Sub: 'Precision engineering assembled seamlessly in deep space.',
-                    sec3Title: 'ADVANCED PROPULSION',
-                    sec3Sub: 'Powered by nuclear thermal and solar array technology.',
-                    sec4Title: 'MISSION READY',
-                    sec4Sub: 'Prepared for deep space transport.',
-                    launchBtn: 'Launch Mission',
-                    scrollText: 'SCROLL TO SCRUB'
-                },
-                HE: {
-                    dir: 'rtl',
-                    sec1Title: 'אוריון אקספלורר',
-                    sec1Sub: 'העתיד של חקר החלל המודולרי.',
-                    sec2Title: 'הרכבה מודולרית',
-                    sec2Sub: 'הנדסת דיוק מורכבת בצורה חלקית בחלל העמוק.',
-                    sec3Title: 'מערכות הנעה מתקדמות',
-                    sec3Sub: 'מונע באמצעות אנרגיה גרעינית תרמית ולוחות סולאריים.',
-                    sec4Title: 'מוכנים למשימה',
-                    sec4Sub: 'מוכן לשיגור ולמסע בחלל העמוק.',
-                    launchBtn: 'התחל משימה',
-                    scrollText: 'גולל למטה'
-                }
-            };
-
-            if (langBtn) {
-                langBtn.addEventListener('click', () => {
-                    currentLang = currentLang === 'EN' ? 'HE' : 'EN';
-                    if (langText) langText.textContent = currentLang === 'EN' ? 'EN / HE' : 'HE / EN';
-                    document.documentElement.setAttribute('dir', translations[currentLang].dir);
-
-                    const s1t = document.getElementById('t-sec1-title');
-                    const s1s = document.getElementById('t-sec1-sub');
-                    const s2t = document.getElementById('t-sec2-title');
-                    const s2s = document.getElementById('t-sec2-sub');
-                    const s3t = document.getElementById('t-sec3-title');
-                    const s3s = document.getElementById('t-sec3-sub');
-                    const s4t = document.getElementById('t-sec4-title');
-                    const s4s = document.getElementById('t-sec4-sub');
-                    const lBtn = document.getElementById('t-launch-btn');
-                    const scTxt = document.getElementById('t-scroll-text');
-
-                    if (s1t) s1t.textContent = translations[currentLang].sec1Title;
-                    if (s1s) s1s.textContent = translations[currentLang].sec1Sub;
-                    if (s2t) s2t.textContent = translations[currentLang].sec2Title;
-                    if (s2s) s2s.textContent = translations[currentLang].sec2Sub;
-                    if (s3t) s3t.textContent = translations[currentLang].sec3Title;
-                    if (s3s) s3s.textContent = translations[currentLang].sec3Sub;
-                    if (s4t) s4t.textContent = translations[currentLang].sec4Title;
-                    if (s4s) s4s.textContent = translations[currentLang].sec4Sub;
-                    if (lBtn) lBtn.textContent = translations[currentLang].launchBtn;
-                    if (scTxt) scTxt.textContent = translations[currentLang].scrollText;
-
-                    playSynthSound(650, 0.15);
-                });
-            }
+            window.addEventListener('resize', initCanvas);
         });
     </script>
 </body>
